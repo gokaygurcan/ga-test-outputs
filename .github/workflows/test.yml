@@ -1,0 +1,58 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      run-number-js: ${{ steps.variables-js.outputs.run-number }}
+      run-number-sh: ${{ steps.variables-js.outputs.run-number }}
+    steps:
+    - id: variables-js
+      name: Variables (js)
+      uses: actions/github-script@v4
+      with:
+        debug: true
+        github-token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+        result-encoding: string
+        script: |
+          const { runNumber } = context;
+          core.setOutput('run-number', runNumber);
+          core.info(`run-number: ${runNumber}`);
+
+    - id: variables-sh
+      name: Variables (bash)
+      run: |
+        echo '::set-output name=run-number::${{ github.run_number }}'
+
+    - id: sanity-check
+      name: Sanity check
+      run: |
+        printenv
+
+  print:
+    name: Print
+    runs-on: ubuntu-latest
+    needs: [ setup ]
+    env:
+      RUN_NUMBER_JS: ${{ needs.setup.outputs.run-number-js }}
+      RUN_NUMBER_SH: ${{ needs.setup.outputs.run-number-sh }}
+    steps:
+    - id: print-run-number-js
+      name: Print (js)
+      run: |
+        echo $RUN_NUMBER_JS
+
+    - id: print-run-number-sh
+      name: Print (bash)
+      run: |
+        echo $RUN_NUMBER_SH
